@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>আলাপ — নিজের AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tiro+Bangla:ital@0;1&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #10141A;
+    --panel: #171C24;
+    --panel-2: #1E2530;
+    --line: #2A323F;
+    --text: #EDEAE3;
+    --muted: #93A0B2;
+    --marigold: #E7A33E;
+    --danger: #D9695A;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Hind Siliguri', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body{
+    display:flex; flex-direction:column;
+    height:100vh; overflow:hidden;
+  }
+  header{
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--line);
+    display:flex; align-items:center; gap:12px;
+    flex-shrink:0;
+    background: linear-gradient(180deg, var(--panel), var(--bg));
+  }
+  .orb{
+    width: 34px; height:34px; border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, var(--marigold), #a9691f 70%);
+    box-shadow: 0 0 0 1px rgba(231,163,62,0.25), 0 4px 14px rgba(231,163,62,0.25);
+    flex-shrink:0;
+    position: relative;
+  }
+  .orb::after{
+    content:'';
+    position:absolute; inset:0; border-radius:50%;
+    animation: pulse 2.6s ease-in-out infinite;
+    border: 1px solid var(--marigold);
+    opacity: 0.5;
+  }
+  @keyframes pulse{
+    0%{ transform: scale(1); opacity:0.5; }
+    70%{ transform: scale(1.9); opacity:0; }
+    100%{ transform: scale(1.9); opacity:0; }
+  }
+  header h1{
+    font-family: 'Tiro Bangla', serif;
+    font-size: 1.35rem;
+    font-weight: 400;
+    margin:0;
+    letter-spacing: 0.2px;
+  }
+  header p{
+    margin: 2px 0 0;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  #chat{
+    flex:1;
+    overflow-y:auto;
+    padding: 22px 16px 12px;
+    display:flex; flex-direction:column; gap:14px;
+    scroll-behavior:smooth;
+  }
+  .empty-state{
+    margin:auto;
+    text-align:center;
+    color: var(--muted);
+    max-width: 360px;
+    padding: 20px;
+  }
+  .empty-state .big{
+    font-family:'Tiro Bangla', serif;
+    font-size: 1.4rem;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .row{ display:flex; max-width: 100%; }
+  .row.user{ justify-content:flex-end; }
+  .row.ai{ justify-content:flex-start; }
+  .bubble{
+    max-width: 78%;
+    padding: 11px 15px;
+    border-radius: 16px;
+    line-height: 1.55;
+    font-size: 0.98rem;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  .row.user .bubble{
+    background: var(--marigold);
+    color: #1a1206;
+    border-bottom-right-radius: 4px;
+  }
+  .row.ai .bubble{
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+  }
+  .row.ai .bubble.thinking{
+    display:flex; gap:5px; align-items:center; padding: 14px 16px;
+  }
+  .dot{
+    width:6px; height:6px; border-radius:50%;
+    background: var(--muted);
+    animation: bounce 1.2s infinite ease-in-out;
+  }
+  .dot:nth-child(2){ animation-delay: 0.15s; }
+  .dot:nth-child(3){ animation-delay: 0.3s; }
+  @keyframes bounce{
+    0%,60%,100%{ transform: translateY(0); opacity:0.5;}
+    30%{ transform: translateY(-4px); opacity:1;}
+  }
+  .error-bubble{
+    border-color: var(--danger) !important;
+    color: #F0BDB4 !important;
+  }
+  #inputBar{
+    flex-shrink:0;
+    padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: var(--panel);
+    display:flex; gap:10px; align-items:flex-end;
+  }
+  #inputBar textarea{
+    flex:1;
+    resize:none;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 14px;
+    padding: 11px 14px;
+    font-family: inherit;
+    font-size: 0.98rem;
+    max-height: 120px;
+    outline:none;
+  }
+  #inputBar textarea:focus{ border-color: var(--marigold); }
+  #inputBar textarea::placeholder{ color: var(--muted); }
+  #sendBtn{
+    background: var(--marigold);
+    border:none;
+    color:#1a1206;
+    width:42px; height:42px;
+    border-radius: 50%;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+    transition: transform 0.12s ease, opacity 0.2s ease;
+  }
+  #sendBtn:active{ transform: scale(0.92); }
+  #sendBtn:disabled{ opacity:0.4; cursor:default; }
+  #sendBtn:focus-visible, textarea:focus-visible{
+    outline: 2px solid var(--marigold);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .orb::after, .dot{ animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="orb"></div>
+  <div>
+    <h1>আলাপ</h1>
+    <p>তোমার নিজের AI সহকারী</p>
+  </div>
+</header>
+
+<div id="chat">
+  <div class="empty-state" id="emptyState">
+    <div class="big">কী নিয়ে কথা বলবে?</div>
+    <div>যেকোনো প্রশ্ন লিখো — উত্তর দেওয়ার চেষ্টা করব।</div>
+  </div>
+</div>
+
+<div id="inputBar">
+  <textarea id="userInput" rows="1" placeholder="এখানে লেখো..." aria-label="বার্তা লিখুন"></textarea>
+  <button id="sendBtn" aria-label="পাঠাও">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M4 12L20 4L14 20L11 13L4 12Z" fill="currentColor"/>
+    </svg>
+  </button>
+</div>
+
+<script>
+const chat = document.getElementById('chat');
+const input = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+const emptyState = document.getElementById('emptyState');
+
+let history = [];
+
+input.addEventListener('input', () => {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+});
+
+input.addEventListener('keydown', (e) => {
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    send();
+  }
+});
+
+sendBtn.addEventListener('click', send);
+
+function addBubble(role, text){
+  if(emptyState) emptyState.remove();
+  const row = document.createElement('div');
+  row.className = 'row ' + (role === 'user' ? 'user' : 'ai');
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+  row.appendChild(bubble);
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+  return bubble;
+}
+
+function addThinking(){
+  const row = document.createElement('div');
+  row.className = 'row ai';
+  row.id = 'thinkingRow';
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble thinking';
+  bubble.innerHTML = '<span class="dot"></span><span class="dot"></span><span class="dot"></span>';
+  row.appendChild(bubble);
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function removeThinking(){
+  const el = document.getElementById('thinkingRow');
+  if(el) el.remove();
+}
+
+async function send(){
+  const text = input.value.trim();
+  if(!text) return;
+
+  addBubble('user', text);
+  history.push({ role: 'user', content: text });
+  input.value = '';
+  input.style.height = 'auto';
+  sendBtn.disabled = true;
+  addThinking();
+
+  try{
+    // Nijer backend function-e call kora hocche - Gemini key ekhane kokhono dekha jabe na
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: history })
+    });
+
+    const data = await response.json();
+
+    if(!response.ok){
+      throw new Error(data.error || 'API error');
+    }
+
+    removeThinking();
+    addBubble('ai', data.reply);
+    history.push({ role: 'assistant', content: data.reply });
+
+  }catch(err){
+    removeThinking();
+    const bubble = addBubble('ai', 'দুঃখিত, একটা সমস্যা হয়েছে। আবার চেষ্টা করো।');
+    bubble.classList.add('error-bubble');
+    console.error(err);
+  }finally{
+    sendBtn.disabled = false;
+    input.focus();
+  }
+}
+</script>
+
+</body>
+</html>
